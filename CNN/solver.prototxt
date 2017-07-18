@@ -1,0 +1,14 @@
+net: "/Users/inhikoxin/Documents/caffe/examples/dsps/trainval_final.prototxt"
+test_iter: 100
+test_interval: 1000
+base_lr: 0.001
+lr_policy: "step"
+gamma: 0.1
+stepsize: 100000
+display: 100
+max_iter: 90000
+momentum: 0.9
+weight_decay: 0.0005
+snapshot: 3000
+snapshot_prefix: "/Users/inhikoxin/Documents/caffe/examples/dsps/train_final"
+solver_mode: CPU

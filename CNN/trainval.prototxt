@@ -1,0 +1,263 @@
+name: "DSPS-CNN"
+layer {
+  name: "data"
+  type: "Data"
+  top: "data"
+  top: "label"
+  include {
+    phase: TRAIN
+  }
+  data_param {
+    source: "/Users/inhikoxin/Desktop/thesis/final_src/protein-train-lmdb"
+    batch_size: 10
+    backend: LMDB
+  }
+}
+layer {
+  name: "data"
+  type: "Data"
+  top: "data"
+  top: "label"
+  include {
+    phase: TEST
+  }
+  data_param {
+    source: "/Users/inhikoxin/Desktop/thesis/final_src/protein-val-lmdb"
+    batch_size: 10
+    backend: LMDB
+  }
+}
+layer {
+  name: "chem"
+  type: "Data"
+  top: "chem"
+  top: "chem_label"
+  include {
+    phase: TRAIN
+  }
+  data_param {
+    source: "/Users/inhikoxin/Desktop/thesis/final_src/chem-train-lmdb"
+    batch_size: 10
+    backend: LMDB
+  }
+}
+layer {
+  name: "chem"
+  type: "Data"
+  top: "chem"
+  top: "chem_label"
+  include {
+    phase: TEST
+  }
+  data_param {
+    source: "/Users/inhikoxin/Desktop/thesis/final_src/chem-val-lmdb"
+    batch_size: 10
+    backend: LMDB
+  }
+}
+layer{
+  name: "silence"
+  type: "Silence"
+  bottom: "chem_label"
+}
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 6
+    kernel_h: 5
+    kernel_w: 7
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "conv1"
+  top: "conv1"
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_h: 2
+    kernel_w: 1
+    stride: 2
+  }
+}
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  convolution_param {
+    num_output: 6
+    pad_h: 2
+    pad_w: 0
+    kernel_h: 3
+    kernel_w: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+}
+layer {
+  name: "relu2"
+  type: "ReLU"
+  bottom: "conv2"
+  top: "conv2"
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    #global_pooling: true
+    kernel_h: 2
+    kernel_w: 1
+    stride: 2
+  }
+}
+layer {
+  name: "fc1"
+  type: "InnerProduct"
+  param { 
+    lr_mult: 1 
+    decay_mult: 1 }
+  param { 
+    lr_mult: 2 
+    decay_mult: 0 }
+  inner_product_param {
+    num_output: 1506
+    weight_filler {
+      type: "gaussian" # "xavier"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  bottom: "pool2"
+  top: "fc1"
+}
+layer {
+  name: "fc2"
+  type: "InnerProduct"
+  param { 
+    lr_mult: 1 
+    decay_mult: 1 }
+  param { 
+    lr_mult: 2 
+    decay_mult: 0 }
+  inner_product_param {
+    num_output: 500
+    weight_filler {
+      type: "gaussian" # "xavier"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  bottom: "fc1"
+  top: "fc2"
+}
+ layer {
+    name: "reshape"
+    type: "Reshape"
+    bottom: "fc2"
+    top: "fc2_r"
+    reshape_param {
+      shape {
+        dim: 0
+        dim: -1
+        dim: 1
+        dim: 1
+      }
+    }
+  }
+layer {
+  name: "concat"
+  type: "Concat"
+  bottom: "chem"
+  bottom: "fc2_r"
+  top: "pair"
+}
+layer {
+  name: "fc3"
+  type: "InnerProduct"
+  param { 
+    lr_mult: 1 
+    decay_mult: 1 }
+  param { 
+    lr_mult: 2 
+    decay_mult: 0 }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "gaussian" # "xavier"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  bottom: "pair"
+  top: "fc3"
+}
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "fc3"
+  bottom: "label"
+  top: "accuracy"
+  include {
+    phase: TEST
+  }
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "fc3"
+  bottom: "label"
+  top: "loss"
+}
